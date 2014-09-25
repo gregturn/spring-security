@@ -1,7 +1,8 @@
 package org.springframework.security.access.method;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.security.access.ConfigAttribute;
@@ -22,6 +23,7 @@ import org.springframework.security.access.ConfigAttribute;
  *
  * @author Ben Alex
  * @author Luke taylor
+ * @author Greg Turnquist
  * @since 2.0
  */
 public abstract class AbstractFallbackMethodSecurityMetadataSource extends AbstractMethodSecurityMetadataSource {
@@ -41,6 +43,14 @@ public abstract class AbstractFallbackMethodSecurityMetadataSource extends Abstr
         if (attr != null) {
             return attr;
         }
+
+		// Third check if the targetClass is an interface with security attributes
+		if (targetClass != null && targetClass.isInterface()) {
+			attr = findAttributes(targetClass);
+			if (attr != null) {
+				return attr;
+			}
+		}
 
         if (specificMethod != method || targetClass == null) {
             // Fallback is to look at the original method.

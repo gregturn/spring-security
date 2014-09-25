@@ -21,6 +21,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.aop.framework.AopProxyUtils;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.security.access.ConfigAttribute;
 
 
@@ -30,21 +31,33 @@ import org.springframework.security.access.ConfigAttribute;
  *
  * @author Ben Alex
  * @author Luke Taylor
+ * @author Greg Turnquist
  */
 public abstract class AbstractMethodSecurityMetadataSource implements MethodSecurityMetadataSource {
 
     protected final Log logger = LogFactory.getLog(getClass());
 
+
+
     //~ Methods ========================================================================================================
 
     public final Collection<ConfigAttribute> getAttributes(Object object) {
-        if (object instanceof MethodInvocation) {
+        if (MethodInvocation.class.isAssignableFrom(object.getClass())) {
             MethodInvocation mi = (MethodInvocation) object;
             Object target = mi.getThis();
             Class<?> targetClass = null;
 
             if (target != null) {
-                targetClass = target instanceof Class<?> ? (Class<?>)target : AopProxyUtils.ultimateTargetClass(target);
+				if (AopUtils.isAopProxy(target) || AopUtils.isCglibProxy(target)) {
+					for (Class<?> proxiedUserInterface : AopProxyUtils.proxiedUserInterfaces(target)) {
+						Collection<ConfigAttribute> attrs = getAttributes(mi.getMethod(), proxiedUserInterface);
+						if (attrs != null && attrs.size() > 0) {
+							return attrs;
+						}
+					}
+				} else {
+					targetClass = target instanceof Class<?> ? (Class<?>) target : AopProxyUtils.ultimateTargetClass(target);
+				}
             }
 
             return getAttributes(mi.getMethod(), targetClass);

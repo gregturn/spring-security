@@ -16,19 +16,23 @@ package org.springframework.security.access.annotation;
 
 import static org.junit.Assert.*;
 
-import org.junit.*;
-import org.springframework.security.access.ConfigAttribute;
-import org.springframework.security.access.SecurityConfig;
-import org.springframework.security.access.intercept.method.MockMethodInvocation;
-import org.springframework.security.core.GrantedAuthority;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+
+import org.junit.Test;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.security.access.ConfigAttribute;
+import org.springframework.security.access.SecurityConfig;
+import org.springframework.security.access.intercept.method.MockMethodInvocation;
+import org.springframework.security.core.GrantedAuthority;
 
 
 /**
@@ -38,6 +42,7 @@ import java.util.*;
  * @author Joe Scalise
  * @author Ben Alex
  * @author Luke Taylor
+ * @author Greg Turnquist
  */
 public class SecuredAnnotationSecurityMetadataSourceTests {
     //~ Instance fields ================================================================================================
@@ -159,7 +164,32 @@ public class SecuredAnnotationSecurityMetadataSourceTests {
         assertEquals("CUSTOM", attrs[0].getAttribute());
     }
 
-    @Test
+	@Test
+	public void annotatedInterfaceOfProxyIsDetected() throws Exception {
+		PojoImpl pojo = new PojoImpl();
+		MockMethodInvocation invokeUnsecured = new MockMethodInvocation(pojo, PojoImpl.class, "nothing");
+		ConfigAttribute[] attrs = mds.getAttributes(invokeUnsecured).toArray(new ConfigAttribute[0]);
+
+		assertEquals(0, attrs.length);
+
+		PojoImplWrapper pojo2 = new PojoImplWrapper();
+		MockMethodInvocation invokeSubclassUnsecured = new MockMethodInvocation(pojo2, PojoImplWrapper.class, "nothing");
+		ConfigAttribute[] attrs2 = mds.getAttributes(invokeSubclassUnsecured).toArray(new ConfigAttribute[0]);
+
+		assertEquals(0, attrs2.length);
+
+		ProxyFactory proxyFactory = new ProxyFactory(pojo2);
+		proxyFactory.addInterface(PojoInterfaceSecured.class);
+		Object securedTarget = proxyFactory.getProxy();
+		MockMethodInvocation invokeSecured = new MockMethodInvocation(securedTarget, PojoImplWrapper.class, "nothing");
+		ConfigAttribute[] attrs3 = mds.getAttributes(invokeSecured).toArray(new ConfigAttribute[0]);
+
+		assertEquals(1, attrs3.length);
+		assertEquals("ROLE_ADMIN", attrs3[0].getAttribute());
+	}
+
+
+	@Test
     public void annotatedAnnotationAtInterfaceLevelIsDetected() throws Exception {
         MockMethodInvocation annotatedAtInterfaceLevel = new MockMethodInvocation(new AnnotatedAnnotationAtInterfaceLevel(), ReturnVoid2.class, "doSomething", List.class);
 

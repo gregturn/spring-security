@@ -17,10 +17,16 @@ package org.springframework.security.access.intercept.aopalliance;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+
+import java.util.List;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.ITargetObject;
@@ -43,8 +49,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.*;
 /**
  * Tests {@link MethodSecurityInterceptor}.
  *
@@ -105,7 +109,13 @@ public class MethodSecurityInterceptorTests {
         assertEquals(aim, interceptor.getAfterInvocationManager());
     }
 
-    @Test(expected=IllegalArgumentException.class)
+	@Test
+	public void callingMethodOnProxyWillInvokeSecurityCheckOnInterface() {
+		SecurityContext ctx = SecurityContextHolder.getContext();
+
+	}
+
+	@Test(expected=IllegalArgumentException.class)
     public void missingAccessDecisionManagerIsDetected() throws Exception {
         interceptor.setAccessDecisionManager(null);
         interceptor.afterPropertiesSet();
